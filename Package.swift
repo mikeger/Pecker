@@ -15,7 +15,7 @@ dependencies.append(
     .package(
         name: "SwiftSyntax",
         url: "https://github.com/apple/swift-syntax",
-        .exact("0.50500.0")
+        .exact("510.0.3")
     )
 )
 #elseif swift(>=5.4)
@@ -40,6 +40,7 @@ fatalError("This version of Periphery does not support Swift <= 5.2.")
 
 let package = Package(
     name: "pecker",
+    platforms: [.macOS(.v10_15)],
     products: [
         .executable(name: "pecker", targets: ["Pecker"])
     ],
@@ -58,6 +59,7 @@ let package = Package(
             name: "PeckerKit",
             dependencies: [
                 "SwiftSyntax",
+                .product(name: "SwiftParser", package: "SwiftSyntax"),
                 "IndexStoreDB",
                 .product(name: "SwiftToolsSupport-auto", package: "swift-tools-support-core"),
                 "Yams"

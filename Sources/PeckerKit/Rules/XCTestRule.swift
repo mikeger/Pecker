@@ -24,14 +24,14 @@ struct XCTestRule: SourceCollectRule {
     /// - Parameter node: FunctionDeclSyntax
     func skip(_ node: FunctionDeclSyntax, location: SourceLocation) -> Bool {
         if let classDecl: ClassDeclSyntax = node.searchParent(), isInheritedFromXCTestCase(classDecl) {
-            if node.identifier.text.hasPrefix("test") && node.signature.input.parameterList.count == 0 {
+            if node.name.text.hasPrefix("test") && node.signature.parameterClause.parameters.count == 0 {
                 return true
             }
         }
         
         // Fuzzy recognition
         if fuzzyRule(location: location) {
-            if node.identifier.text.hasPrefix("test") && node.signature.input.parameterList.count == 0 {
+            if node.name.text.hasPrefix("test") && node.signature.parameterClause.parameters.count == 0 {
                 return true
             }
         }

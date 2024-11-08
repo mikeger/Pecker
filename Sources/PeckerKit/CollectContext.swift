@@ -14,6 +14,6 @@ public struct CollectContext {
     init(configuration: Configuration, filePath: String, sourceFileSyntax: SourceFileSyntax) {
         self.configuration = configuration
         self.filePath = filePath
-        self.sourceLocationConverter = SourceLocationConverter(file: filePath, tree: sourceFileSyntax)
+        self.sourceLocationConverter = SourceLocationConverter(fileName: filePath, tree: sourceFileSyntax)
     }
 }

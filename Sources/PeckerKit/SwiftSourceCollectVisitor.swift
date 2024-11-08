@@ -11,34 +11,35 @@ class SwiftSourceCollectVisitor: SyntaxVisitor {
     init(context: CollectContext) {
         self.context = context
         self.rules = context.configuration.rules.compactMap { $0 as? SourceCollectRule }
+        super.init(viewMode: .sourceAccurate)
     }
     
     override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-        if let position = findLocation(syntax: node.identifier) {
+        if let position = findLocation(syntax: node.name) {
             if skip(syntax: node, location: position) {
                 return .visitChildren
             }
-            collect(SourceDetail(name: node.identifier.text, sourceKind: .class, location: position))
+            collect(SourceDetail(name: node.name.text, sourceKind: .class, location: position))
         }
         return .visitChildren
     }
     
     override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        if let position = findLocation(syntax: node.identifier) {
+        if let position = findLocation(syntax: node.name) {
             if skip(syntax: node, location: position) {
                 return .visitChildren
             }
-            collect(SourceDetail(name: node.identifier.text, sourceKind: .struct, location: position))
+            collect(SourceDetail(name: node.name.text, sourceKind: .struct, location: position))
         }
         return .visitChildren
     }
     
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        let ps = node.signature.input.parameterList.compactMap {
-            $0.firstName?.text
+        let ps = node.signature.parameterClause.parameters.compactMap {
+            $0.firstName.text
         }
-        let function = Function(name: node.identifier.text, parameters: ps)
-        if let position = findLocation(syntax: node.identifier) {
+        let function = Function(name: node.name.text, parameters: ps)
+        if let position = findLocation(syntax: node.name) {
             if skip(syntax: node, location: position) {
                 return .visitChildren
             }
@@ -48,47 +49,47 @@ class SwiftSourceCollectVisitor: SyntaxVisitor {
     }
     
     override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        if let position = findLocation(syntax: node.identifier) {
+        if let position = findLocation(syntax: node.name) {
             if skip(syntax: node, location: position) {
                 return .visitChildren
             }
-            collect(SourceDetail(name: node.identifier.text, sourceKind: .enum, location: position))
+            collect(SourceDetail(name: node.name.text, sourceKind: .enum, location: position))
         }
         return .visitChildren
     }
     
     override func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
-        if let position = findLocation(syntax: node.identifier) {
+        if let position = findLocation(syntax: node.name) {
             if skip(syntax: node, location: position) {
                 return .visitChildren
             }
-            collect(SourceDetail(name: node.identifier.text, sourceKind: .protocol, location: position))
+            collect(SourceDetail(name: node.name.text, sourceKind: .protocol, location: position))
         }
         return .visitChildren
     }
     
-    override func visit(_ node: TypealiasDeclSyntax) -> SyntaxVisitorContinueKind {
-        if let position = findLocation(syntax: node.identifier) {
+    override func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
+        if let position = findLocation(syntax: node.name) {
             if skip(syntax: node, location: position) {
                 return .visitChildren
             }
-            collect(SourceDetail(name: node.identifier.text, sourceKind: .typealias, location: position))
+            collect(SourceDetail(name: node.name.text, sourceKind: .typealias, location: position))
         }
         return .visitChildren
     }
     
     override func visit(_ node: OperatorDeclSyntax) -> SyntaxVisitorContinueKind {
-        if let position = findLocation(syntax: node.identifier) {
+        if let position = findLocation(syntax: node.name) {
             if skip(syntax: node, location: position) {
                 return .visitChildren
             }
-            collect(SourceDetail(name: node.identifier.text, sourceKind: .operator, location: position))
+            collect(SourceDetail(name: node.name.text, sourceKind: .operator, location: position))
         }
         return .visitChildren
     }
     
     override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-        for token in node.extendedType.tokens {
+        for token in node.extendedType.tokens(viewMode: .sourceAccurate) {
             if let position = findLocation(syntax: token) {
                 let source = SourceDetail(name: token.text , sourceKind: .extension, location: position)
                 sourceExtensions[source.identifier] = source
@@ -120,10 +121,6 @@ extension SwiftSourceCollectVisitor {
     
     func findLocation(syntax: SyntaxProtocol) -> SourceLocation? {
         let position = context.sourceLocationConverter.location(for: syntax.positionAfterSkippingLeadingTrivia)
-        guard let line = position.line,
-            let column = position.column else {
-            return nil
-        }
-        return SourceLocation(path: context.filePath, line: line, column: column, offset: position.offset)
+        return SourceLocation(path: context.filePath, line: position.line, column: position.column, offset: position.offset)
     }
 }

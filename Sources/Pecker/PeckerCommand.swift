@@ -20,7 +20,7 @@ struct CommandLineOptions: ParsableArguments {
     var config: String?
     
     @Flag(name: .shortAndLong, help: "Print the version and exit")
-    var version: Bool
+    var version: Bool = false
 
     mutating func validate() throws {
         if version {
@@ -88,7 +88,7 @@ private func createConfigurationPath(rootPath: AbsolutePath, config: String? = n
         }
         throw PEError.findConfigFaild(message: "The specified config path does not exist")
     } else {
-        return rootPath.appending(RelativePath(".pecker.yml"))
+        return AbsolutePath(".pecker.yml", relativeTo: rootPath)
     }
 }
 

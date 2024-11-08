@@ -2,13 +2,13 @@ import Foundation
 import SwiftSyntax
 
 protocol InheritableSyntax {
-    var inheritanceClause: TypeInheritanceClauseSyntax? { get }
+    var inheritanceClause: InheritanceClauseSyntax? { get }
     func isInherited(from string: String) -> Bool
 }
 
 extension InheritableSyntax {
     func isInherited(from string: String) -> Bool {
-        inheritanceClause?.inheritedTypeCollection.contains(where: { $0.lastToken?.text == string }) ?? false
+        inheritanceClause?.inheritedTypes.contains(where: { $0.lastToken(viewMode: .sourceAccurate)?.text == string }) ?? false
     }
 }
 
@@ -18,7 +18,7 @@ extension EnumDeclSyntax: InheritableSyntax {}
 extension ProtocolDeclSyntax: InheritableSyntax {}
 
 protocol ModifierSyntax: SyntaxProtocol {
-    var modifiers: ModifierListSyntax? { get }
+    var modifiers: DeclModifierListSyntax { get }
     func isPublic() -> Bool
 }
 
@@ -38,24 +38,21 @@ extension ModifierSyntax {
 
 extension ModifierSyntax {
     func isPublic() -> Bool {
-        if let modifiers = modifiers {
-            if modifiers.contains(where: {
-                $0.name.tokenKind == .publicKeyword
-            }) {
-                return true
-            }
-            if modifiers.contains(where: {
-                $0.name.tokenKind == .privateKeyword ||
-                $0.name.tokenKind == .internalKeyword ||
-                $0.name.tokenKind == .fileprivateKeyword
-            }) {
-                return false
-            }
+        if modifiers.contains(where: {
+            $0.name.tokenKind == .keyword(.public)
+        }) {
+            return true
         }
-        
+        if modifiers.contains(where: {
+            $0.name.tokenKind == .keyword(.private) ||
+            $0.name.tokenKind == .keyword(.internal) ||
+            $0.name.tokenKind == .keyword(.fileprivate)
+        }) {
+            return false
+        }
+    
         if let extDel: ExtensionDeclSyntax = searchParent(),
-            let modifiers = extDel.modifiers,
-            modifiers.contains(where: { $0.name.tokenKind == .publicKeyword }) {
+           extDel.modifiers.contains(where: { $0.name.tokenKind == .keyword(.public) }) {
             return true
         }
         return false
@@ -67,8 +64,7 @@ extension StructDeclSyntax: ModifierSyntax {}
 extension EnumDeclSyntax: ModifierSyntax {}
 extension ProtocolDeclSyntax: ModifierSyntax {}
 extension FunctionDeclSyntax: ModifierSyntax {}
-extension TypealiasDeclSyntax: ModifierSyntax {}
-extension OperatorDeclSyntax: ModifierSyntax {}
+extension TypeAliasDeclSyntax: ModifierSyntax {}
 extension ExtensionDeclSyntax: ModifierSyntax {}
 
 
@@ -81,7 +77,7 @@ extension StructDeclSyntax: IdentifierSyntax {}
 extension EnumDeclSyntax: IdentifierSyntax {}
 extension ProtocolDeclSyntax: IdentifierSyntax {}
 extension FunctionDeclSyntax: IdentifierSyntax {}
-extension TypealiasDeclSyntax: IdentifierSyntax {}
+extension TypeAliasDeclSyntax: IdentifierSyntax {}
 extension OperatorDeclSyntax: IdentifierSyntax {}
 
 extension TriviaPiece {
@@ -94,8 +90,9 @@ extension TriviaPiece {
              .newlines,
              .carriageReturns,
              .carriageReturnLineFeeds,
-//             .backticks,
-             .garbageText:
+             .backslashes,
+             .pounds,
+             .unexpectedText:
             return nil
         case .lineComment(let comment),
              .blockComment(let comment),

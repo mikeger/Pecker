@@ -1,4 +1,5 @@
 import Foundation
+import SwiftParser
 import SwiftSyntax
 import TSCBasic
 
@@ -35,19 +36,15 @@ class SourceCollector {
         let files = computeContents()
         let safeSources = ThreadSafe<[SourceDetail]>([])
         DispatchQueue.concurrentPerform(iterations: files.count) { index in
-            let fileURL = files[index].asURL
-            do {
-                let syntax = try SyntaxParser.parse(fileURL)
-                let context = CollectContext(configuration: configuration,
-                                         filePath: files[index].description,
-                                         sourceFileSyntax: syntax)
-                let pipeline = SwiftSourceCollectVisitor(context: context)
-                pipeline.walk(syntax)
-                safeSources.atomically { $0 += pipeline.sources }
-                sourceExtensions.atomically { $0 += pipeline.sourceExtensions }
-            } catch {
-                fputs("Error parsing \(fileURL) \(error)", stderr)
-            }
+            let filePath = files[index]
+            let syntax = Parser.parse(source: filePath.asURL.absoluteString)
+            let context = CollectContext(configuration: configuration,
+                                     filePath: files[index].description,
+                                     sourceFileSyntax: syntax)
+            let pipeline = SwiftSourceCollectVisitor(context: context)
+            pipeline.walk(syntax)
+            safeSources.atomically { $0 += pipeline.sources }
+            sourceExtensions.atomically { $0 += pipeline.sourceExtensions }
         }
         sources = safeSources.value
     }
@@ -65,7 +62,7 @@ class SourceCollector {
             if self.excluded.contains(curr) { continue }
             
             // Ignore if this is an not included path.
-            guard self.included.contains(where: { $0.contains(curr) || curr.contains($0) }) else {
+            guard self.included.contains(where: { $0.isDescendantOfOrEqual(to: curr) || curr.isDescendantOfOrEqual(to: $0) }) else {
                 continue
             }
             
